@@ -10,8 +10,6 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
-app.use('/api/profile', authRoutes);
-app.use('/api/login', authRoutes);
 
 // Test database connection before starting the server
 async function startServer() {

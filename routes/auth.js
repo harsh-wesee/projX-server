@@ -33,6 +33,7 @@ router.post('/register', async (req, res) => {
         const {
             fullName,
             email,
+            password,
             primaryPlatforms,
             channelLink,
             age,
@@ -46,7 +47,7 @@ router.post('/register', async (req, res) => {
 
         // Validate required fields
         const requiredFields = [
-            'fullName', 'email',
+            'fullName', 'email', 'password',
             'primaryPlatforms', 'channelLink',
             'age', 'gender', 'country'
         ];
@@ -69,11 +70,16 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ error: 'Creator already exists' });
         }
 
+          // Hash password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
         // Insert creator into database
         const newCreator = await db.one(
             `INSERT INTO creators_auth (
           full_name,
           email, 
+          password,
           primaryplatform, 
           channel_links, 
           age, 
@@ -84,11 +90,12 @@ router.post('/register', async (req, res) => {
           channel_genre, 
           content_desc
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
         ) RETURNING id, full_name, email`,
             [
                 fullName,
                 email,
+                hashedPassword,
                 toPostgresArray(primaryPlatforms),
                 toPostgresArray(channelLink), // Convert channelLink to a PostgreSQL array
                 age,
@@ -129,7 +136,7 @@ router.post('/register', async (req, res) => {
 // Creator Login (modified to work with new schema)
 router.post('/login', async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email , password } = req.body;
 
         // Find creator by email
         const creator = await db.oneOrNone(
@@ -178,6 +185,7 @@ router.get('/profile', authMiddleware, async (req, res) => {
           id, 
           full_name, 
           email, 
+          password,
           primaryplatform, 
           channel_links, 
           age, 
