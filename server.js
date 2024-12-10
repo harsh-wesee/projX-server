@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/auth');
+const channelDetails = require('./routes/registerChannelDetails');
 const db = require('./config/database'); // Import the database connection
 
 const app = express();
@@ -10,6 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
+app.use('/api/channelOnboarding', channelDetails);
 
 // Test database connection before starting the server
 async function startServer() {
