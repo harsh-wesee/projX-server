@@ -8,26 +8,39 @@ const authMiddleware = require('../middleware/authMiddleware');
 router.post('/uploadChannelDetails', authMiddleware, async function (req, res) {
     try {
         const {
-            channel_age,
-            subscibers_count,
-            avg_views,
-            content_type,
-            posts_freq,
-            live_streaming,
-            collab_type,
-            ig_account_name,
-            ig_account_age,
-            ig_followers_count,
-            avg_ig_reel_views,
-            avg_ig_comment_count,
-            avg_ig_likes_count,
-            eng_rate,
+            channelAge,
+            subscribers,
+            averageViews,
+            contentType,
+            postingFrequency,
+            liveStreaming,
+            collabType,
+            accountName,
+            accountAge,
+            followers,
+            avgReelViews,
+            avgComments,
+            avgLikes,
+            engagementRate,
         } = req.body;
+        console.log("Subscribers" ,subscribers);
+
 
         const requiredFields = [
-            'channel_age', 'subscibers_count', 'avg_views',
-            'content_type', 'posts_freq',
-            'live_streaming', 'collab_type'
+            'channelAge',
+            'subscribers',
+            'averageViews',
+            'contentType',
+            'postingFrequency',
+            'liveStreaming',
+            'collabType',
+            'accountName',
+            'accountAge',
+            'followers',
+            'avgReelViews',
+            'avgComments',
+            'avgLikes',
+            'engagementRate',
         ];
 
         for (const field of requiredFields) {
@@ -64,26 +77,24 @@ router.post('/uploadChannelDetails', authMiddleware, async function (req, res) {
              avg_ig_likes_count,
              eng_rate_ig
          ) VALUES (
-             $1, $2, $3, $4, $5, $6, $7, $8, $9. $10, $11, $12, $13, $14, $15
-         )`;
+             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`;
 
         const values = [
             creator_id,
-            channel_age,
-            subscibers_count || 0,
-            avg_views,
-            content_type,
-            posts_freq,
-            live_streaming || false,
-            collab_type,
-            ig_account_name,
-            ig_account_age,
-            ig_followers_count,
-            avg_ig_reel_views,
-            avg_ig_comment_count,
-            avg_ig_likes_count,
-            eng_rate,
-
+            channelAge,
+            subscribers || 0,
+            averageViews,
+            contentType,
+            postingFrequency,
+            liveStreaming,
+            collabType,
+            accountName,
+            accountAge,
+            followers,
+            avgReelViews,
+            avgComments,
+            avgLikes,
+            engagementRate,
         ];
 
         const result = await db.query(query, values);
