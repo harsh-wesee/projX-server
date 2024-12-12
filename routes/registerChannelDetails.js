@@ -23,9 +23,7 @@ router.post('/uploadChannelDetails', authMiddleware, async function (req, res) {
             avgLikes,
             engagementRate,
         } = req.body;
-        console.log("Subscribers" ,subscribers);
-
-
+        
         const requiredFields = [
             'channelAge',
             'subscribers',
