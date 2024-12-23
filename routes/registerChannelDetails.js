@@ -122,8 +122,6 @@ router.get('/getChannelDetails', authMiddleware, async function (req, res) {
                 error: 'Authentication failed: No user ID found'
             });
         }
-        console.log(creator_id)
-
         // Query to fetch channel details for the specific user
         const query = `
             SELECT 
