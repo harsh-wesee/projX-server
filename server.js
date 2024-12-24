@@ -7,7 +7,7 @@ const brandInfo = require('./routes/brandsInformation');
 const db = require('./config/database'); // Import the database connection
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
 
 app.use(cors());
 app.use(express.json());
@@ -25,7 +25,7 @@ async function startServer() {
     console.log('Database connected successfully');
 
     // Start the server after successful database connection
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`Server running on port ${PORT}`);
     });
   } catch (error) {
@@ -39,8 +39,8 @@ startServer();
 
 // Optional: Add a simple health check route
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'healthy', 
+  res.json({
+    status: 'healthy',
     message: 'Server is up and running',
     database: 'connected'
   });
