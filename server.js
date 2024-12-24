@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const channelDetails = require('./routes/registerChannelDetails');
+const brandAuth = require('./routes/registerBrands');
+const brandInfo = require('./routes/brandsInformation');
 const db = require('./config/database'); // Import the database connection
 
 const app = express();
@@ -10,8 +12,10 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-app.use('/api/auth', authRoutes);
-app.use('/api/channelOnboarding', channelDetails);
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/channelOnboarding', channelDetails);
+app.use('/api/v1/brandsAuth', brandAuth);
+app.use('/api/v1/brandProfile', brandInfo);
 
 // Test database connection before starting the server
 async function startServer() {
