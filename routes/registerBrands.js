@@ -79,6 +79,60 @@ router.post('/registerBrands', async function (req, res) {
     }
 });
 
+router.post('/loginBrand', async function (req, res) {
+    try {
+        const { email, password } = req.body;
+
+        // Validate required fields
+        if (!email || !password) {
+            return res.status(400).json({
+                error: 'Email and password are required'
+            });
+        }
+
+        // Check if brand exists
+        const existingBrand = await db.oneOrNone(
+            'SELECT * FROM brands_auth WHERE email = $1',
+            [email]
+        );
+
+        if (!existingBrand) {
+            return res.status(404).json({ error: 'Brand not found' });
+        }
+
+        // Check if password is correct
+        const isPasswordValid = await bcrypt.compare(password, existingBrand.password);
+
+        if (!isPasswordValid) {
+            return res.status(401).json({ error: 'Invalid password' });
+        }
+
+        // Generate JWT
+        const token = jwt.sign(
+            { id: existingBrand.id, email: existingBrand.email },
+            process.env.JWT_SECRET || 'your_jwt_secret',
+            { expiresIn: '10h' }
+        );
+
+        res.json({
+            message: 'Login successful',
+            token,
+            brand: {
+                id: existingBrand.id,
+                brandsName: existingBrand.brands_name,
+                email: existingBrand.email,
+                country: existingBrand.country
+            }
+        });
+    } catch (error) {
+        console.error('Failed to login brand:', error);
+        res.status(500).json({ 
+            error: 'Internal server error',
+            details: error.message 
+        });
+    }
+});
+
 module.exports = router;
 
 
