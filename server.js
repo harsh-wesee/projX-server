@@ -5,6 +5,10 @@ const channelDetails = require('./routes/registerChannelDetails');
 const brandAuth = require('./routes/registerBrands');
 const brandInfo = require('./routes/brandsInformation');
 const db = require('./config/database'); // Import the database connection
+const fbAuth = require('./routes/FacebookLoginService/FBAuthroute')
+const agencyAuth = require('./routes/agencyAuth')
+
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -16,6 +20,8 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/channelOnboarding', channelDetails);
 app.use('/api/v1/brandsAuth', brandAuth);
 app.use('/api/v1/brandProfile', brandInfo);
+app.use('/api/v1/fbAuth', fbAuth);
+app.use('/api/v1/agencyLogin', agencyAuth);
 
 // Test database connection before starting the server
 async function startServer() {
