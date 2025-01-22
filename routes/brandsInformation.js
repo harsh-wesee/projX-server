@@ -12,7 +12,7 @@ function toPostgresArray(arr) {
     }
 
     // Ensure it's an array
-    if (!Array.isArray(arr) || arr.length === 0) {
+    if (!Array.isArray(arr) || arr.length === 0) {1
         return null;
     }
 
