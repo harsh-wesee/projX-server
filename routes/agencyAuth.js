@@ -7,12 +7,12 @@ const authMiddleware = require('../middleware/authMiddleware');
 
 
 router.post('/registerAgency', async (req, res) => {
-    try{
-        const {              
+    try {
+        const {
             agencyName,
             email,
-            password    
-        }  = req.body;
+            password
+        } = req.body;
         const requiredFields = ['agencyName', 'email', 'password'];
         for (const field of requiredFields) {
             if (!req.body[field]) {
@@ -26,7 +26,7 @@ router.post('/registerAgency', async (req, res) => {
             'SELECT * FROM media_agencies WHERE email = $1 OR agency_name = $2',
             [email, agencyName]
         );
-        
+
         if (existingAgency) {
             return res.status(400).json({ error: 'Agency already exists, Sign up using the email and password or create a different account' });
         }
@@ -46,18 +46,18 @@ router.post('/registerAgency', async (req, res) => {
         );
 
         const token = jwt.sign(
-            { id: newAgency.id, email: newAgency.email },
+            { id: newAgency.id },
             process.env.JWT_SECRET || 'your_jwt_secret', { expiresIn: '10h' });
-        
-        res.status(201).json({ 
-            message : 'Agency Registered', token, agencyDetails: {id: newAgency.id, email: newAgency.email, agencyName: newAgency.agencyName} 
-        
+
+        res.status(201).json({
+            message: 'Agency Registered', token, agencyDetails: { id: newAgency.id, email: newAgency.email, agencyName: newAgency.agencyName }
+
         });
 
-    } catch (error) { 
+    } catch (error) {
         console.error('Failed to register agency:', error);
         res.status(500).json({ error: 'Internal server error' });
-      }
+    }
 });
 
 
@@ -100,25 +100,28 @@ router.post('/updateAgency/:id', authMiddleware, async (req, res) => {
         const agencyId = parseInt(req.params.id, 10);
         const { agencyName, phoneNumber, websiteUrl, establishedYear, employeeCountRange, logoUrl, bannerUrl, campaignBudgetMin, campaignBudgetMax } = req.body;
 
+        console.log(req.user.id, agencyId);
+
         // Ensure the JWT user is the same as the agency trying to update the record
-        if (req.user.agencyId !== agencyId) {
+        if (req.user.id != agencyId) {
             return res.status(403).json({ error: 'You do not have permission to update this agency.' });
         }
 
         const result = await db.none(
             `UPDATE media_agencies
-             SET 
-                 agency_name = COALESCE($1, agency_name),
-                 phone_number = COALESCE($2, phone_number),
-                 website_url = COALESCE($3, website_url),
-                 established_year = COALESCE($4, established_year),
-                 employee_count_range = COALESCE($5, employee_count_range),
-                 logo_url = COALESCE($6, logo_url),
-                 banner_url = COALESCE($7, banner_url),
-                 campaign_budget_min = COALESCE($8, campaign_budget_min),
-                 campaign_budget_max = COALESCE($9, campaign_budget_max),
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE id = $10`,
+SET 
+    agency_name = COALESCE($1::text, agency_name::text)::text,
+    phone_number = COALESCE($2::text, phone_number::text)::text,
+    website_url = COALESCE($3::text, website_url::text)::text,
+    established_year = COALESCE($4, established_year),
+    employee_count_range = COALESCE($5::text, employee_count_range::text)::text,
+    logo_url = COALESCE($6::text, logo_url::text)::text,
+    banner_url = COALESCE($7::text, banner_url::text)::text,
+    campaign_budget_min = COALESCE($8, campaign_budget_min),
+    campaign_budget_max = COALESCE($9, campaign_budget_max),
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $10;
+`,
             [
                 agencyName,
                 phoneNumber,
@@ -140,89 +143,84 @@ router.post('/updateAgency/:id', authMiddleware, async (req, res) => {
     }
 });
 
-router.post('/updateTeamMember/:id', authMiddleware, async (req, res) => {
+router.post('/addTeamMember/:id', authMiddleware, async (req, res) => {
     try {
-        const memberId = parseInt(req.params.id, 10);
-        const { name, email, role } = req.body;
+        const agencyId = parseInt(req.params.id, 10); // Agency ID as a parameter
+        const { name, email, role } = req.body; // Data from request body
 
-        const result = await db.none(
-            `UPDATE team_members
-             SET 
-                 name = COALESCE($1, name),
-                 email = COALESCE($2, email),
-                 role = COALESCE($3, role)
-             WHERE id = $4`,
-            [name, email, role, memberId]
+        // Check user authorization
+        if (req.user.id !== agencyId) {
+            return res.status(403).json({ error: 'You do not have permission to add a team member for this agency.' });
+        }
+
+        // Insert new team member
+        await db.none(
+            `INSERT INTO team_members (agency_id, name, email, role)
+             VALUES ($1, COALESCE($2::text, 'Default Name'), COALESCE($3::text, 'Default Email'), COALESCE($4::text, 'Default Role'))`,
+            [agencyId, name, email, role]
         );
 
-        res.status(200).json({ message: 'Team member updated successfully.' });
+        res.status(200).json({ message: 'Team member added successfully.' });
     } catch (error) {
-        console.error('Failed to update team member:', error);
+        console.error('Failed to add team member:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-router.post('/updateProject/:id', authMiddleware, async (req, res) => {
+
+
+
+
+router.post('/addProject/:agencyId', authMiddleware, async (req, res) => {
     try {
-        const projectId = parseInt(req.params.id, 10);
+        const agencyId = parseInt(req.params.agencyId, 10);
         const { campaignName, clientName, description, results } = req.body;
 
-        const result = await db.none(
-            `UPDATE portfolio_projects
-             SET 
-                 campaign_name = COALESCE($1, campaign_name),
-                 client_name = COALESCE($2, client_name),
-                 description = COALESCE($3, description),
-                 results = COALESCE($4, results)
-             WHERE id = $5`,
-            [campaignName, clientName, description, results, projectId]
+        // Authorization check
+        if (req.user.id !== agencyId) {
+            return res.status(403).json({ error: 'You do not have permission to add a project for this agency.' });
+        }
+
+        // Insert new project
+        await db.none(
+            `INSERT INTO portfolio_projects (agency_id, campaign_name, client_name, description, results)
+             VALUES ($1, COALESCE($2::text, 'Default Campaign'), COALESCE($3::text, 'Default Client'), COALESCE($4::text, 'Default Description'), COALESCE($5::text, 'Default Results'))`,
+            [agencyId, campaignName, clientName, description, results]
         );
 
-        res.status(200).json({ message: 'Project details updated successfully.' });
+        res.status(200).json({ message: 'Project added successfully.' });
     } catch (error) {
-        console.error('Failed to update project:', error);
+        console.error('Failed to add project:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-router.post('/updatePaymentInfo/:agencyId', authMiddleware, async (req, res) => {
+
+router.post('/addPaymentInfo/:agencyId', authMiddleware, async (req, res) => {
     try {
         const agencyId = parseInt(req.params.agencyId, 10);
         const { accountHolderName, accountNumber, ifscCode, bankName, gstNumber, panNumber } = req.body;
 
-        // Ensure the JWT user is the same as the agency trying to update the payment info
-        if (req.user.agencyId !== agencyId) {
-            return res.status(403).json({ error: 'You do not have permission to update this payment information.' });
+        // Authorization check
+        if (req.user.id !== agencyId) {
+            return res.status(403).json({ error: 'You do not have permission to add payment information for this agency.' });
         }
 
-        const result = await db.none(
-            `UPDATE agency_payment_info
-             SET 
-                 account_holder_name = COALESCE($1, account_holder_name),
-                 account_number = COALESCE($2, account_number),
-                 ifsc_code = COALESCE($3, ifsc_code),
-                 bank_name = COALESCE($4, bank_name),
-                 gst_number = COALESCE($5, gst_number),
-                 pan_number = COALESCE($6, pan_number),
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE agency_id = $7`,
-            [
-                accountHolderName,
-                accountNumber,
-                ifscCode,
-                bankName,
-                gstNumber,
-                panNumber,
-                agencyId
-            ]
+        // Insert new payment information
+        await db.none(
+            `INSERT INTO agency_payment_info (agency_id, account_holder_name, account_number, ifsc_code, bank_name, gst_number, pan_number, updated_at)
+             VALUES ($1, COALESCE($2::text, 'Default Holder Name'), COALESCE($3::text, 'Default Account Number'), COALESCE($4::text, 'Default IFSC Code'), COALESCE($5::text, 'Default Bank Name'), COALESCE($6::text, 'Default GST Number'), COALESCE($7::text, 'Default PAN Number'), CURRENT_TIMESTAMP)`,
+            [agencyId, accountHolderName, accountNumber, ifscCode, bankName, gstNumber, panNumber]
         );
 
-        res.status(200).json({ message: 'Payment information updated successfully.' });
+        res.status(200).json({ message: 'Payment information added successfully.' });
     } catch (error) {
-        console.error('Failed to update payment information:', error);
+        console.error('Failed to add payment information:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
+
+
 
 module.exports = router;
 
