@@ -7,6 +7,7 @@ const brandInfo = require('./routes/brandsInformation');
 const db = require('./config/database'); // Import the database connection
 const fbAuth = require('./routes/FacebookLoginService/FBAuthroute')
 const agencyAuth = require('./routes/agencyAuth')
+const brandCampaignMetrics = require('./routes/brands/createCampaign')
 
 
 
@@ -22,6 +23,7 @@ app.use('/api/v1/brandsAuth', brandAuth);
 app.use('/api/v1/brandProfile', brandInfo);
 app.use('/api/v1/fbAuth', fbAuth);
 app.use('/api/v1/agencyLogin', agencyAuth);
+app.use('/api/v1/brandCampaignMetrics', brandCampaignMetrics);
 
 // Test database connection before starting the server
 async function startServer() {
