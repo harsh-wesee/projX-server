@@ -52,14 +52,25 @@ router.get('/campaignSearch', searchValidation, async (req, res) => {
         if (search) {
             query += `
                 AND (
-                    c.name ILIKE $${paramCount} 
-                    OR c.description ILIKE $${paramCount}
-                    OR c.target_audience ILIKE $${paramCount}
+                    name_tsvector @@ to_tsquery('english', $${paramCount})
+                    OR description_tsvector @@ to_tsquery('english', $${paramCount})
+                    OR target_audience_tsvector @@ to_tsquery('english', $${paramCount})
                 )
             `;
-            params.push(`%${search}%`);
+            params.push(search.split(' ').join(' & ')); // Convert search terms to a tsquery format
             paramCount++;
         }
+        // if (search) {
+        //     query += `
+        //         AND (
+        //             c.name ILIKE $${paramCount} 
+        //             OR c.description ILIKE $${paramCount}
+        //             OR c.target_audience ILIKE $${paramCount}
+        //         )
+        //     `;
+        //     params.push(`%${search}%`);
+        //     paramCount++;
+        // }
 
         // Add date range conditions
         if (startDate) {
