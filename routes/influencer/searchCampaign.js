@@ -1,6 +1,7 @@
 // campaigns.route.js
 const express = require('express');
 const router = express.Router();
+const authMiddleware = require('../../middleware/authMiddleware');
 const pool = require('../../config/database');
 const { check, query } = require('express-validator');  // Changed from validate to check/query
 
@@ -17,7 +18,7 @@ const searchValidation = [
 ];
 
 // Search campaigns endpoint
-router.get('/campaignSearch', searchValidation, async (req, res) => {   
+router.get('/campaignSearch', authMiddleware, searchValidation, async (req, res) => {   
     try {
         const {
             search,
@@ -122,6 +123,7 @@ router.get('/campaignSearch', searchValidation, async (req, res) => {
 
         const totalCount = parseInt(countResult[0].count);
         const totalPages = Math.ceil(totalCount / limit);
+        console.log(params);
 
         res.json({
             status: 'success',
@@ -144,7 +146,7 @@ router.get('/campaignSearch', searchValidation, async (req, res) => {
 });
 
 // Get campaign by ID endpoint
-router.get('searchByCId/:id', async (req, res) => {
+router.get('searchByCId/:id', authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
         

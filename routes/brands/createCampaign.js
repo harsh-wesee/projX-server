@@ -2,13 +2,32 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../config/database');
 const authMiddleware = require('../../middleware/authMiddleware');
+const multer = require('multer');
+const storage = multer.memoryStorage();
 
 
 
-router.post('/createCampaign', authMiddleware, async function (req, res) {
+const upload = multer({
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    // Allow only specific image formats
+    if (file.mimetype.match(/^image\/(jpg|jpeg|png|heic)$/)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only jpg, jpeg, png, and heic files are allowed.'), false);
+    }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
+
+
+
+
+
+router.post('/createCampaign', authMiddleware, upload.single('campaignMedia'), async function (req, res) {
     try {
-
-
         const {
             campaignName,
             campaignDescription,
@@ -42,6 +61,12 @@ router.post('/createCampaign', authMiddleware, async function (req, res) {
                 error: 'Authentication failed: No user ID found'
             });
         }
+
+        let mediaBuffer = null;
+        if (req.file) {
+            mediaBuffer = req.file.buffer;
+        }
+
         const newCampaign = await db.one(
             `INSERT INTO campaigns (
             name,
@@ -51,28 +76,29 @@ router.post('/createCampaign', authMiddleware, async function (req, res) {
             status,
             budget,
             target_audience,
+            campaign_media,
             brand_id
         ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8
-        ) RETURNING id, name, description, start_date, end_date, status, budget, target_audience,brand_id`,
-            [campaignName, campaignDescription, campaignStartDate, campaignEndDate, campaignStatus, campaignBudget, targetAudience, brandsId]
+            $1, $2, $3, $4, $5, $6, $7, $8, $9
+        ) RETURNING id, name, description, start_date, end_date, status, budget, target_audience, brand_id`,
+            [campaignName, campaignDescription, campaignStartDate, campaignEndDate, campaignStatus, campaignBudget, targetAudience, mediaBuffer, brandsId]
         );
         res.status(201).json(newCampaign);
     } catch (error) {
         console.error('Error:', error);
+        if (error.message.includes('Invalid file type')) {
+            return res.status(400).json({ error: error.message });
+        }
         res.status(500).json({ error: 'Server error' });
     }
-
 });
 
 const validateCampaignHeader = (req, res, next) => {
     const campaignId = req.headers['x-campaign-id'];
-
     if (!campaignId) {
         return res.status(401).json({ error: 'Campaign ID is required in header (x-campaign-id)' });
     }
     req.campaignId = campaignId;
-
     next();
 };
 
