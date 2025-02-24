@@ -87,7 +87,7 @@ router.post('/register', async (req, res) => {
           country, 
           city, 
           content_lang, 
-          channel_genre, 
+          niches, 
           content_desc
         ) VALUES (
           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
@@ -103,7 +103,7 @@ router.post('/register', async (req, res) => {
                 country,
                 city || null,
                 toPostgresArray(contentLanguages),
-                channelGenre || null,
+                channelGenre || null, // if taking in the form of array use toPostgresArray(niches)
                 contentDescription || null
             ]
         );
@@ -193,7 +193,7 @@ router.get('/profile', authMiddleware, async (req, res) => {
           country, 
           city, 
           content_lang, 
-          channel_genre, 
+          niches, 
           content_desc
         FROM creators_auth 
         WHERE id = $1`,

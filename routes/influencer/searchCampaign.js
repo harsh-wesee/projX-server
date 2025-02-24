@@ -53,26 +53,14 @@ router.get('/campaignSearch', authMiddleware, searchValidation, async (req, res)
         if (search) {
             query += `
                 AND (
-                    name_tsvector @@ to_tsquery('english', $${paramCount})
-                    OR description_tsvector @@ to_tsquery('english', $${paramCount})
-                    OR target_audience_tsvector @@ to_tsquery('english', $${paramCount})
+                    LOWER(c.name) LIKE $${paramCount}
+                    OR LOWER(c.description) LIKE $${paramCount}
+                    OR LOWER(c.target_audience) LIKE $${paramCount}
                 )
             `;
-            params.push(search.split(' ').join(' & ')); // Convert search terms to a tsquery format
+            params.push(`%${search.toLowerCase()}%`); // Add wildcards before and after the search term
             paramCount++;
         }
-        // if (search) {
-        //     query += `
-        //         AND (
-        //             c.name ILIKE $${paramCount} 
-        //             OR c.description ILIKE $${paramCount}
-        //             OR c.target_audience ILIKE $${paramCount}
-        //         )
-        //     `;
-        //     params.push(`%${search}%`);
-        //     paramCount++;
-        // }
-
         // Add date range conditions
         if (startDate) {
             query += ` AND c.start_date >= $${paramCount}`;
@@ -153,9 +141,9 @@ router.get('searchByCId/:id', authMiddleware, async (req, res) => {
         const query = `
            SELECT 
                 c.*,
-                ba.brands_name as brand_name  -- Changed from b.name to ba.brands_name
+                ba.brands_name as brand_name
             FROM campaigns c
-            JOIN brands_auth ba ON c.brand_id = ba.id  -- Changed from brands_information to brands_auth
+            JOIN brands_auth ba ON c.brand_id = ba.id
             WHERE c.id = $1 AND c.status = 'ACTIVE'
         `;
 
