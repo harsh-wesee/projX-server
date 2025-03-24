@@ -208,13 +208,14 @@ router.get('/getCampaignMetrics', async function (req, res) {
 
 
         const result = await client.query(query, values);
-        if (result.rows.length === 0) {
+        console.log("Result from Campaign metrics", result)
+        if (result.length === 0) {
             return res.status(404).json({ error: 'No metrics found for the specified campaign' });
         }
 
         res.status(200).json({
             message: 'Campaign metrics retrieved successfully',
-            data: result.rows
+            data: result
         });
 
 
@@ -222,10 +223,7 @@ router.get('/getCampaignMetrics', async function (req, res) {
         console.error('Error:', error);
         res.status(500).json({ error: 'Server error' });
 
-    } finally {
-        client.release();
     }
-
 })
 
 
