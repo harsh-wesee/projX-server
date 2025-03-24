@@ -87,7 +87,10 @@ router.post('/uploadBrandsInformation', authMiddleware, async function (req, res
             brandsWebsite,
             toPostgresArray(brandsSocialMedia)];
         const { rows } = await db.query(query, values);
-        res.status(201).json(rows);
+        console.log(rows);
+        res.status(201).json({
+            "message": "Brand information uploaded successfully",
+        });
 
     } catch (error) {
         console.error('Failed to register brand:', error);
@@ -105,7 +108,7 @@ router.get('/getBrandsInformation', authMiddleware, async function (req, res) {
             });
         }
         const query = `
-            SELECT * FROM brands_information WHERE id = $1
+            SELECT * FROM brands_information WHERE brand_id = $1
         `;
         const values = [brandsId];
         const result = await db.query(query, values);
