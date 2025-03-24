@@ -53,6 +53,8 @@ router.post('/uploadBrandsInformation', authMiddleware, async function (req, res
             }
         }
 
+        console.log("Req.User object", req.user);
+
         const brandsId = req.user.id;
         if (!brandsId) {
             return res.status(401).json({
@@ -62,10 +64,19 @@ router.post('/uploadBrandsInformation', authMiddleware, async function (req, res
 
 
         const query = `
-            INSERT INTO brands_information (id, product_categories, target_audience_age, market_fit_capture, turnover, brands_description, brands_website, brands_social_media)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            RETURNING id, product_categories, target_audience_age, market_fit_capture, turnover, brands_description, brands_website, brands_social_media
-        `;
+    INSERT INTO brands_information (brand_id, product_categories, target_audience_age, market_fit_capture, turnover, brands_description, brands_website, brands_social_media)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    ON CONFLICT (brand_id) 
+    DO UPDATE SET 
+        product_categories = EXCLUDED.product_categories,
+        target_audience_age = EXCLUDED.target_audience_age,
+        market_fit_capture = EXCLUDED.market_fit_capture,
+        turnover = EXCLUDED.turnover,
+        brands_description = EXCLUDED.brands_description,
+        brands_website = EXCLUDED.brands_website,
+        brands_social_media = EXCLUDED.brands_social_media
+    RETURNING brand_id, product_categories, target_audience_age, market_fit_capture, turnover, brands_description, brands_website, brands_social_media;
+`;
         const values = [
             brandsId,
             productCategory,
@@ -76,7 +87,7 @@ router.post('/uploadBrandsInformation', authMiddleware, async function (req, res
             brandsWebsite,
             toPostgresArray(brandsSocialMedia)];
         const { rows } = await db.query(query, values);
-        res.status(201).json(rows[0]);
+        res.status(201).json(rows);
 
     } catch (error) {
         console.error('Failed to register brand:', error);

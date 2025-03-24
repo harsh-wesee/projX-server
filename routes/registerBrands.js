@@ -49,13 +49,13 @@ router.post('/registerBrands', async function (req, res) {
                 password
             ) VALUES (
                 $1, $2, $3, $4
-            ) RETURNING id, brands_name, email, country`,
+            ) RETURNING brands_id, brands_name, email, country`,
             [brandsName, email, country, hashedPassword]
         );
 
         // Generate JWT
         const token = jwt.sign(
-            { id: newBrand.id, email: newBrand.email },
+            { id: newBrand.brands_id, email: newBrand.email },
             process.env.JWT_SECRET || 'your_jwt_secret',
             { expiresIn: '10h' }
         );
@@ -64,7 +64,7 @@ router.post('/registerBrands', async function (req, res) {
             message: 'Brand registered successfully',
             token,
             brand: {
-                id: newBrand.id,
+                id: newBrand.brands_id,
                 brandsName: newBrand.brands_name,
                 email: newBrand.email,
                 country: newBrand.country
@@ -72,9 +72,9 @@ router.post('/registerBrands', async function (req, res) {
         });
     } catch (error) {
         console.error('Failed to register brand:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Internal server error',
-            details: error.message 
+            details: error.message
         });
     }
 });
@@ -98,6 +98,9 @@ router.post('/loginBrand', async function (req, res) {
 
         if (!existingBrand) {
             return res.status(404).json({ error: 'Brand not found' });
+        } else {
+            console.log(existingBrand
+            );
         }
 
         // Check if password is correct
@@ -109,7 +112,7 @@ router.post('/loginBrand', async function (req, res) {
 
         // Generate JWT
         const token = jwt.sign(
-            { id: existingBrand.id, email: existingBrand.email },
+            { id: existingBrand.brands_id, email: existingBrand.email },
             process.env.JWT_SECRET || 'your_jwt_secret',
             { expiresIn: '10h' }
         );
@@ -118,7 +121,7 @@ router.post('/loginBrand', async function (req, res) {
             message: 'Login successful',
             token,
             brand: {
-                id: existingBrand.id,
+                id: existingBrand.brands_id,
                 brandsName: existingBrand.brands_name,
                 email: existingBrand.email,
                 country: existingBrand.country
@@ -126,9 +129,9 @@ router.post('/loginBrand', async function (req, res) {
         });
     } catch (error) {
         console.error('Failed to login brand:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Internal server error',
-            details: error.message 
+            details: error.message
         });
     }
 });
