@@ -108,7 +108,10 @@ router.get('/getBrandsInformation', authMiddleware, async function (req, res) {
             });
         }
         const query = `
-            SELECT * FROM brands_information WHERE brand_id = $1
+            SELECT ba.brands_id, ba.brands_name, ba.email, ba.country, bi.product_categories, bi.target_audience_age, bi.market_fit_capture, bi.turnover, bi.brands_description, bi.brands_website, bi.brands_social_media
+            FROM brands_auth ba
+            JOIN brands_information bi ON ba.brands_id = bi.brand_id
+            WHERE ba.brands_id = $1
         `;
         const values = [brandsId];
         const result = await db.query(query, values);
@@ -122,3 +125,7 @@ router.get('/getBrandsInformation', authMiddleware, async function (req, res) {
 });
 
 module.exports = router;
+
+
+// brands_auth ba
+// brands_information bi

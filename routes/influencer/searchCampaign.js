@@ -30,7 +30,6 @@ router.get('/campaignSearch', authMiddleware, searchValidation, async (req, res)
             limit = 20
         } = req.query;
 
-        // Build the base query with active status filter
         let query = `
             SELECT 
                 c.id,
@@ -42,7 +41,7 @@ router.get('/campaignSearch', authMiddleware, searchValidation, async (req, res)
                 c.target_audience,
                 ba.brands_name as brand_name
             FROM campaigns c
-            JOIN brands_auth ba ON c.brand_id = ba.id
+            JOIN brands_auth ba ON c.brand_id = ba.brands_id
             WHERE c.status = 'ACTIVE'
         `;
 
@@ -143,7 +142,7 @@ router.get('searchByCId/:id', authMiddleware, async (req, res) => {
                 c.*,
                 ba.brands_name as brand_name
             FROM campaigns c
-            JOIN brands_auth ba ON c.brand_id = ba.id
+            JOIN brands_auth ba ON c.brand_id = ba.brands_id
             WHERE c.id = $1 AND c.status = 'ACTIVE'
         `;
 
