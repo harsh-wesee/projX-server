@@ -7,9 +7,9 @@ const brandInfo = require('./routes/brandsInformation');
 const db = require('./config/database'); // Import the database connection
 const fbAuth = require('./routes/FacebookLoginService/FBAuthroute')
 const agencyAuth = require('./routes/agencyAuth')
-const brandCampaignMetrics = require('./routes/brands/createCampaign')
+const brandCampaignGateway = require('./routes/brands/createCampaign')
 const searchCampaign = require('./routes/influencer/searchCampaign')
-const elnlistInfluencers = require('./routes/brands/discoverInflencer')
+const enlistInfluencers = require('./routes/brands/discoverInflencer')
 
 
 const app = express();
@@ -24,9 +24,9 @@ app.use('/api/v1/brandsAuth', brandAuth);
 app.use('/api/v1/brandProfile', brandInfo);
 app.use('/api/v1/fbAuth', fbAuth);
 app.use('/api/v1/agencyLogin', agencyAuth);
-app.use('/api/v1/brandCampaignMetrics', brandCampaignMetrics);
+app.use('/api/v1/brandCampaignGateway', brandCampaignGateway);
 app.use('/api/v1/fuzzySearch', searchCampaign);
-app.use('/api/v1/fuzzyListing', elnlistInfluencers);
+app.use('/api/v1/fuzzyListing', enlistInfluencers);
 
 
 // Test database connection before starting the server
