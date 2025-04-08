@@ -14,7 +14,7 @@ const searchValidation = [
     query('minBudget').optional().isNumeric(),
     query('maxBudget').optional().isNumeric(),
     query('page').optional().isInt({ min: 1 }).toInt(),
-    query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
+    query('limit').optional().isInt({ min: 1, max: 100 }).toInt(), 
 ];
 
 // Search campaigns endpoint
