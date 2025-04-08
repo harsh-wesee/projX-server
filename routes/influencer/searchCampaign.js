@@ -19,6 +19,7 @@ const searchValidation = [
 
 // Search campaigns endpoint
 router.get('/campaignSearch', authMiddleware, searchValidation, async (req, res) => {   
+    let paramCount = 2;
     try {
         const {
             search,
@@ -39,14 +40,17 @@ router.get('/campaignSearch', authMiddleware, searchValidation, async (req, res)
                 c.end_date,
                 c.budget,
                 c.target_audience,
-                ba.brands_name as brand_name
+                ba.brands_name as brand_name,
+                ca.application_status as application_status
             FROM campaigns c
             JOIN brands_auth ba ON c.brand_id = ba.brands_id
+            LEFT JOIN campaign_applications ca ON c.id = ca.campaign_id 
+                AND ca.influencer_id = $1::uuid
             WHERE c.status = 'ACTIVE'
         `;
 
-        const params = [];
-        let paramCount = 1;
+        const params = [req.user.id]; // Add logged-in user's ID as first parameter
+        // Start parameter count from 2
 
         // Add search conditions
         if (search) {

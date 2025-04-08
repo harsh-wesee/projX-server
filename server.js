@@ -10,6 +10,7 @@ const agencyAuth = require('./routes/agencyAuth')
 const brandCampaignGateway = require('./routes/brands/createCampaign')
 const searchCampaign = require('./routes/influencer/searchCampaign')
 const enlistInfluencers = require('./routes/brands/discoverInflencer')
+const campaignApplications = require('./routes/influencer/campaignApplications')
 
 
 const app = express();
@@ -27,6 +28,7 @@ app.use('/api/v1/agencyLogin', agencyAuth);
 app.use('/api/v1/brandCampaignGateway', brandCampaignGateway);
 app.use('/api/v1/fuzzySearch', searchCampaign);
 app.use('/api/v1/fuzzyListing', enlistInfluencers);
+app.use('/api/v1/creators/applyCampaign', campaignApplications)
 
 
 // Test database connection before starting the server
