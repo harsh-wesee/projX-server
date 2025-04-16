@@ -12,6 +12,7 @@ const searchCampaign = require('./routes/influencer/searchCampaign')
 const enlistInfluencers = require('./routes/brands/discoverInflencer')
 const campaignApplications = require('./routes/influencer/campaignApplications')
 const influencerPackages = require('./routes/influencer/influencerPackages')
+const enlistInfluencersPackage = require('./routes/brands/enlistCampaignApplication')
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -30,6 +31,7 @@ app.use('/api/v1/fuzzySearch', searchCampaign);
 app.use('/api/v1/fuzzyListing', enlistInfluencers);
 app.use('/api/v1/creators/applyCampaign', campaignApplications);
 app.use('/api/v1/creators/packages', influencerPackages);
+app.use('/api/v1/brands/enlistCampaignApplication', enlistInfluencersPackage);
 
 
 // Test database connection before starting the server
