@@ -3,9 +3,11 @@ const router = express.Router();
 const db = require('../../config/database');
 const authMiddleware = require('../../middleware/authMiddleware');
 
-router.get('/enlistInfluencers', async (req, res) => {
+router.get('/enlistInfluencers', authMiddleware, async (req, res) => {
   try {
+    const brandId = req.user.brand_id; // Get brand ID from authenticated user
     const { platform, niches, minFollowers, maxFollowers, minEngagement, maxEngagement } = req.query;
+    
     let query = `
       SELECT 
           ca.id,
@@ -43,7 +45,9 @@ router.get('/enlistInfluencers', async (req, res) => {
                 'features', ip.features,
                 'delivery_time_days', ip.delivery_time_days
               )
-            ) FILTER (WHERE ip.package_type IS NOT NULL),
+            ) FILTER (WHERE ip.package_type IS NOT NULL 
+                      AND (ip.target_brand IS NULL 
+                           OR ip.target_brand = $${queryParams.length + 1})),
             '[]'
           ) as packages
       FROM 
@@ -55,7 +59,7 @@ router.get('/enlistInfluencers', async (req, res) => {
       WHERE 1=1
     `;
 
-    const queryParams = [];
+    const queryParams = [brandId]; // Add brandId as first parameter
     
     // Filter by platform (Instagram, YouTube, or both)
     if (platform) {
