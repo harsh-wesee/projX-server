@@ -5,8 +5,11 @@ const authMiddleware = require('../../middleware/authMiddleware');
 
 router.get('/enlistInfluencers', authMiddleware, async (req, res) => {
   try {
-    const brandId = req.user.brand_id; // Get brand ID from authenticated user
+    const brandId = req.user.id; // Get brand ID from authenticated user
     const { platform, niches, minFollowers, maxFollowers, minEngagement, maxEngagement } = req.query;
+
+    let paramCounter = 1;
+    const queryParams = [brandId];
     
     let query = `
       SELECT 
@@ -37,19 +40,19 @@ router.get('/enlistInfluencers', authMiddleware, async (req, res) => {
           ccd.avg_ig_comment_count,
           ccd.avg_ig_likes_count,
           ccd.eng_rate_ig,
-          COALESCE(
-            json_agg(
-              json_build_object(
-                'package_type', ip.package_type,
-                'price', ip.price,
-                'features', ip.features,
-                'delivery_time_days', ip.delivery_time_days
-              )
-            ) FILTER (WHERE ip.package_type IS NOT NULL 
-                      AND (ip.target_brand IS NULL 
-                           OR ip.target_brand = $${queryParams.length + 1})),
-            '[]'
-          ) as packages
+         COALESCE(
+  json_agg(
+    json_build_object(
+      'package_type', ip.package_type,
+      'price', ip.price,
+      'features', ip.features,
+      'delivery_time_days', ip.delivery_time_days
+    )
+  ) FILTER (WHERE ip.package_type IS NOT NULL 
+            AND (ip.target_brand IS NULL 
+                 OR ip.target_brand::text = $1::text)),
+  '[]'
+) as packages
       FROM 
           creators_auth ca
       LEFT JOIN 
@@ -59,38 +62,45 @@ router.get('/enlistInfluencers', authMiddleware, async (req, res) => {
       WHERE 1=1
     `;
 
-    const queryParams = [brandId]; // Add brandId as first parameter
+    // For the rest of the filters, increase the parameter counter
+    paramCounter = 2; // Starting from 2 since we already used $1
     
     // Filter by platform (Instagram, YouTube, or both)
     if (platform) {
-      query += ` AND ca.primaryplatform @> $${queryParams.length + 1}`;
+      query += ` AND ca.primaryplatform @> $${paramCounter}`;
       queryParams.push(`{${platform}}`);
+      paramCounter++;
     }
 
     // Filter by niches
     if (niches) {
-      query += ` AND ca.niches ILIKE $${queryParams.length + 1}`;
+      query += ` AND ca.niches ILIKE $${paramCounter}`;
       queryParams.push(`%${niches}%`);
+      paramCounter++;
     }
 
     // Filter by followers range
     if (minFollowers) {
-      query += ` AND (ccd.ig_followers_count >= $${queryParams.length + 1} OR ccd.subscribers_count_youtube >= $${queryParams.length + 1})`;
+      query += ` AND (ccd.ig_followers_count >= $${paramCounter} OR ccd.subscribers_count_youtube >= $${paramCounter})`;
       queryParams.push(Number(minFollowers));
+      paramCounter++;
     }
     if (maxFollowers) {
-      query += ` AND (ccd.ig_followers_count <= $${queryParams.length + 1} OR ccd.subscribers_count_youtube <= $${queryParams.length + 1})`;
+      query += ` AND (ccd.ig_followers_count <= $${paramCounter} OR ccd.subscribers_count_youtube <= $${paramCounter})`;
       queryParams.push(Number(maxFollowers));
+      paramCounter++;
     }
 
     // Filter by engagement rate range
     if (minEngagement) {
-      query += ` AND ccd.eng_rate_ig >= $${queryParams.length + 1}`;
+      query += ` AND ccd.eng_rate_ig >= $${paramCounter}`;
       queryParams.push(Number(minEngagement));
+      paramCounter++;
     }
     if (maxEngagement) {
-      query += ` AND ccd.eng_rate_ig <= $${queryParams.length + 1}`;
+      query += ` AND ccd.eng_rate_ig <= $${paramCounter}`;
       queryParams.push(Number(maxEngagement));
+      paramCounter++;
     }
 
     // Add GROUP BY clause

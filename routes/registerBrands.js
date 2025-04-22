@@ -102,9 +102,11 @@ router.post('/loginBrand', async function (req, res) {
             console.log(existingBrand
             );
         }
+        // console.log(bcrypt.d)
 
         // Check if password is correct
         const isPasswordValid = await bcrypt.compare(password, existingBrand.password);
+
 
         if (!isPasswordValid) {
             return res.status(401).json({ error: 'Invalid password' });
