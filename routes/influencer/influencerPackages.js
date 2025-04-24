@@ -20,10 +20,6 @@ router.get('/influencerPackages', authMiddleware, async (req, res) => {
                 influencer_packages p
             WHERE 
                 p.creator_id = $1
-                AND (
-                    p.target_brand IS NULL 
-                    OR p.target_brand = $2
-                )
         `, [influencerId, brand_id || null]);
 
         res.status(200).json({
