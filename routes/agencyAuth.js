@@ -88,7 +88,7 @@ router.post('/loginAgency', async (req, res) => {
             { expiresIn: '10h' }
         );
 
-        res.json({ message: 'Login successful', token });
+        res.json({ message: 'Login successful', token, id: agency.id});
     } catch (error) {
         console.error('Failed to login agency:', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -97,7 +97,7 @@ router.post('/loginAgency', async (req, res) => {
 
 router.post('/updateAgency/:id', authMiddleware, async (req, res) => {
     try {
-        const agencyId = parseInt(req.params.id, 10);
+        const agencyId = req.params.id
         const { agencyName, phoneNumber, websiteUrl, establishedYear, employeeCountRange, logoUrl, bannerUrl, campaignBudgetMin, campaignBudgetMax } = req.body;
 
         console.log(req.user.id, agencyId);

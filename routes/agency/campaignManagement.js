@@ -1,10 +1,9 @@
-// campaigns.route.js
 const express = require('express');
 const router = express.Router();
+const db = require('../../config/database');
 const authMiddleware = require('../../middleware/authMiddleware');
 const pool = require('../../config/database');
-const { check, query } = require('express-validator');  // Changed from validate to check/query
-
+const { check, query } = require('express-validator');
 
 // Search validation middleware
 const searchValidation = [
@@ -16,6 +15,70 @@ const searchValidation = [
     query('page').optional().isInt({ min: 1 }).toInt(),
     query('limit').optional().isInt({ min: 1, max: 100 }).toInt(), 
 ];
+
+
+router.post('/applyCampaignAgency/:campaignId', authMiddleware, async (req, res) => {
+    try {
+        const agencyID = req.user.id;
+        const { campaignId } = req.params;
+        const { message } = req.body;
+
+        const campaign = await db.oneOrNone(
+            'SELECT id, status FROM campaigns WHERE id = $1',
+            [campaignId]
+        );
+
+        if (!campaign) {
+            return res.status(404).json({
+                error: 'Campaign not found'
+            });
+        }
+
+        if (campaign.status !== 'ACTIVE') {
+            return res.status(400).json({
+                error: 'Campaign is not accepting applications'
+            });
+        }
+
+
+        const existingApplication = await db.oneOrNone(
+            'SELECT id FROM campaign_applications WHERE campaign_id = $1 AND agency_id = $2',
+            [campaignId, agencyID]
+        );
+
+        if (existingApplication) {
+            return res.status(400).json({
+                error: 'You have already applied to this campaign'
+            });
+        }
+
+        // Create application
+        const newApplication = await db.one(
+            `INSERT INTO campaign_applications 
+            (campaign_id, message, application_status, agency_id) 
+            VALUES ($1, $2, 'applied', $3) 
+            RETURNING id, campaign_id, influencer_id, application_status, message, applied_at, agency_id`,
+            [campaignId,  message, agencyID]
+        );
+
+        res.status(201).json({
+            message: 'Application submitted successfully',
+            data: newApplication
+        });
+
+    } catch (error) {
+        console.error('Error submitting application:', error); 
+        res.status(500).json({
+            error: 'Internal server error',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
+
+
+
+
+
 
 // Search campaigns endpoint
 router.get('/campaignSearch', authMiddleware, searchValidation, async (req, res) => {   
@@ -45,7 +108,7 @@ router.get('/campaignSearch', authMiddleware, searchValidation, async (req, res)
             FROM campaigns c
             JOIN brands_auth ba ON c.brand_id = ba.brands_id
             LEFT JOIN campaign_applications ca ON c.id = ca.campaign_id 
-                AND ca.influencer_id = $1::uuid 
+                AND ca.agency_id = $1::uuid 
             WHERE c.status = 'ACTIVE'
         `;
 
@@ -137,40 +200,40 @@ router.get('/campaignSearch', authMiddleware, searchValidation, async (req, res)
 });
 
 // Get campaign by ID endpoint
-router.get('searchByCId/:id', authMiddleware, async (req, res) => {
-    try {
-        const { id } = req.params;
+// router.get('searchByCId/:id', authMiddleware, async (req, res) => {
+//     try {
+//         const { id } = req.params;
         
-        const query = `
-           SELECT 
-                c.*,
-                ba.brands_name as brand_name
-            FROM campaigns c
-            JOIN brands_auth ba ON c.brand_id = ba.brands_id
-            WHERE c.id = $1 AND c.status = 'ACTIVE'
-        `;
+//         const query = `
+//            SELECT 
+//                 c.*,
+//                 ba.brands_name as brand_name
+//             FROM campaigns c
+//             JOIN brands_auth ba ON c.brand_id = ba.brands_id
+//             WHERE c.id = $1 AND c.status = 'ACTIVE'
+//         `;
 
-        const result = await pool.query(query, [id]);
+//         const result = await pool.query(query, [id]);
 
-        if (result.length === 0) {
-            return res.status(404).json({
-                status: 'error',
-                message: 'Campaign not found'
-            });
-        }
+//         if (result.length === 0) {
+//             return res.status(404).json({
+//                 status: 'error',
+//                 message: 'Campaign not found'
+//             });
+//         }
 
-        res.json({
-            status: 'success',
-            data: result[0]
-        });
+//         res.json({
+//             status: 'success',
+//             data: result[0]
+//         });
 
-    } catch (error) {
-        console.error('Get campaign error:', error);
-        res.status(500).json({
-            status: 'error',
-            message: 'An error occurred while fetching the campaign'
-        });
-    }
-});
+//     } catch (error) {
+//         console.error('Get campaign error:', error);
+//         res.status(500).json({
+//             status: 'error',
+//             message: 'An error occurred while fetching the campaign'
+//         });
+//     }
+// });
 
 module.exports = router;

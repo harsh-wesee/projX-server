@@ -13,6 +13,13 @@ const enlistInfluencers = require('./routes/brands/discoverInflencer')
 const campaignApplications = require('./routes/influencer/campaignApplications')
 const influencerPackages = require('./routes/influencer/influencerPackages')
 const enlistInfluencersPackage = require('./routes/brands/enlistCampaignApplication')
+const agencyDiscoverInfluencers = require('./routes/agency/discoverInfluencers')
+const agencyCampaignManagement = require('./routes/agency/campaignManagement')
+
+
+
+
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -25,13 +32,16 @@ app.use('/api/v1/channelOnboarding', channelDetails);
 app.use('/api/v1/brandsAuth', brandAuth);
 app.use('/api/v1/brandProfile', brandInfo);
 app.use('/api/v1/fbAuth', fbAuth);
-app.use('/api/v1/agencyLogin', agencyAuth);
+app.use('/api/v1/agencyAuth', agencyAuth);
 app.use('/api/v1/brandCampaignGateway', brandCampaignGateway);
 app.use('/api/v1/fuzzySearch', searchCampaign);
 app.use('/api/v1/fuzzyListing', enlistInfluencers);
 app.use('/api/v1/creators/applyCampaign', campaignApplications);
 app.use('/api/v1/creators/packages', influencerPackages);
 app.use('/api/v1/brands/enlistCampaignApplication', enlistInfluencersPackage);
+app.use('/api/v1/agency/discover', agencyDiscoverInfluencers);
+app.use('/api/v1/agency/campaignManagement', agencyCampaignManagement);
+
 
 
 // Test database connection before starting the server
