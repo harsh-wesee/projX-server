@@ -14,11 +14,11 @@ const searchValidation = [
     query('minBudget').optional().isNumeric(),
     query('maxBudget').optional().isNumeric(),
     query('page').optional().isInt({ min: 1 }).toInt(),
-    query('limit').optional().isInt({ min: 1, max: 100 }).toInt(), 
+    query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
 ];
 
 // Search campaigns endpoint
-router.get('/campaignSearch', authMiddleware, searchValidation, async (req, res) => {   
+router.get('/campaignSearch', authMiddleware, searchValidation, async (req, res) => {
     let paramCount = 2;
     try {
         const {
@@ -32,22 +32,45 @@ router.get('/campaignSearch', authMiddleware, searchValidation, async (req, res)
         } = req.query;
 
         let query = `
-            SELECT 
-                c.id,
-                c.name,
-                c.description,
-                c.start_date,
-                c.end_date,
-                c.budget,
-                c.target_audience,
-                ba.brands_name as brand_name,
-                ca.application_status as application_status
-            FROM campaigns c
-            JOIN brands_auth ba ON c.brand_id = ba.brands_id
-            LEFT JOIN campaign_applications ca ON c.id = ca.campaign_id 
-                AND ca.influencer_id = $1::uuid 
-            WHERE c.status = 'ACTIVE'
-        `;
+            WITH combined_campaigns AS (
+        SELECT 
+            c.id,
+            c.name,
+            c.description,
+            c.start_date,
+            c.end_date,
+            c.budget,
+            c.target_audience,
+            ba.brands_name as creator_name,
+            ca.application_status as application_status,
+            'brand' as campaign_type
+        FROM brand_campaigns c
+        JOIN brands_auth ba ON c.brand_id = ba.brands_id
+        LEFT JOIN brand_campaign_application_from_creator ca ON c.id = ca.campaign_id 
+            AND ca.influencer_id = $1::uuid 
+        WHERE c.status = 'ACTIVE'
+
+        UNION ALL
+
+        SELECT 
+            ac.id,
+            ac.name,
+            ac.description,
+            ac.start_date,
+            ac.end_date,
+            ac.budget,
+            ac.target_audience,
+            aa.agency_name as creator_name,
+            aca.application_status as application_status,
+            'agency' as campaign_type
+        FROM agency_campaigns ac
+        JOIN media_agencies aa ON ac.agency_id = aa.id
+        LEFT JOIN agency_campaign_application_from_creator aca ON ac.id = aca.campaign_id 
+            AND aca.influencer_id = $1::uuid 
+        WHERE ac.status = 'ACTIVE'
+    )
+    SELECT * FROM combined_campaigns WHERE 1=1
+`;
 
         const params = [req.user.id]; // Add logged-in user's ID as first parameter
         // Start parameter count from 2
@@ -56,9 +79,9 @@ router.get('/campaignSearch', authMiddleware, searchValidation, async (req, res)
         if (search) {
             query += `
                 AND (
-                    LOWER(c.name) LIKE $${paramCount}
-                    OR LOWER(c.description) LIKE $${paramCount}
-                    OR LOWER(c.target_audience) LIKE $${paramCount}
+                    LOWER(name) LIKE $${paramCount}
+                    OR LOWER(description) LIKE $${paramCount}
+                    OR LOWER(target_audience) LIKE $${paramCount}
                 )
             `;
             params.push(`%${search.toLowerCase()}%`); // Add wildcards before and after the search term
@@ -66,45 +89,47 @@ router.get('/campaignSearch', authMiddleware, searchValidation, async (req, res)
         }
         // Add date range conditions
         if (startDate) {
-            query += ` AND c.start_date >= $${paramCount}`;
+            query += ` AND start_date >= $${paramCount}`;
             params.push(startDate);
             paramCount++;
         }
 
         if (endDate) {
-            query += ` AND c.end_date <= $${paramCount}`;
+            query += ` AND end_date <= $${paramCount}`;
             params.push(endDate);
             paramCount++;
         }
 
         // Add budget range conditions
         if (minBudget) {
-            query += ` AND c.budget >= $${paramCount}`;
+            query += ` AND budget >= $${paramCount}`;
             params.push(minBudget);
             paramCount++;
         }
 
         if (maxBudget) {
-            query += ` AND c.budget <= $${paramCount}`;
+            query += ` AND budget <= $${paramCount}`;
             params.push(maxBudget);
             paramCount++;
         }
 
         // Add sorting and pagination
         query += `
-            ORDER BY c.start_date DESC
+            ORDER BY start_date DESC
             LIMIT $${paramCount}
             OFFSET $${paramCount + 1}
         `;
-        
+
         params.push(limit, (page - 1) * limit);
 
         // Get total count for pagination
         const countQuery = `
-            SELECT COUNT(*) 
-            FROM campaigns c
-            WHERE c.status = 'ACTIVE'
-        `;
+    SELECT (
+        SELECT COUNT(*) FROM brand_campaigns WHERE status = 'ACTIVE'
+    ) + (
+        SELECT COUNT(*) FROM agency_campaigns WHERE status = 'ACTIVE'
+    ) as count
+`;
 
         // Execute queries in parallel
         const [results, countResult] = await Promise.all([
@@ -112,7 +137,7 @@ router.get('/campaignSearch', authMiddleware, searchValidation, async (req, res)
             pool.query(countQuery)
         ]);
 
-        const totalCount = parseInt(countResult[0].count);
+        const totalCount = parseInt(countResult.count);
         const totalPages = Math.ceil(totalCount / limit);
         console.log(params);
 
@@ -120,10 +145,10 @@ router.get('/campaignSearch', authMiddleware, searchValidation, async (req, res)
             status: 'success',
             data: results,
             pagination: {
-                currentPage: page,
+                currentPage: parseInt(page),
                 totalPages,
                 totalItems: totalCount,
-                itemsPerPage: limit
+                itemsPerPage: parseInt(limit)
             }
         });
 
@@ -140,7 +165,7 @@ router.get('/campaignSearch', authMiddleware, searchValidation, async (req, res)
 router.get('searchByCId/:id', authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
-        
+
         const query = `
            SELECT 
                 c.*,

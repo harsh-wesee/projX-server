@@ -68,7 +68,7 @@ router.post('/createCampaign', authMiddleware, upload.single('campaignMedia'), a
         }
 
         const newCampaign = await db.one(
-            `INSERT INTO campaigns (
+            `INSERT INTO brand_campaigns (
             name,
             description,
             start_date,

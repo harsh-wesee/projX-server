@@ -4,6 +4,8 @@ const db = require('../../config/database');
 const authMiddleware = require('../../middleware/authMiddleware');
 const pool = require('../../config/database');
 const { check, query } = require('express-validator');
+const multer = require('multer');
+const storage = multer.memoryStorage();
 
 // Search validation middleware
 const searchValidation = [
@@ -17,6 +19,21 @@ const searchValidation = [
 ];
 
 
+const upload = multer({
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    // Allow only specific image formats
+    if (file.mimetype.match(/^image\/(jpg|jpeg|png|heic)$/)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only jpg, jpeg, png, and heic files are allowed.'), false);
+    }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
+
 router.post('/applyCampaignAgency/:campaignId', authMiddleware, async (req, res) => {
     try {
         const agencyID = req.user.id;
@@ -24,7 +41,7 @@ router.post('/applyCampaignAgency/:campaignId', authMiddleware, async (req, res)
         const { message } = req.body;
 
         const campaign = await db.oneOrNone(
-            'SELECT id, status FROM campaigns WHERE id = $1',
+            'SELECT id, status FROM brand_campaigns WHERE id = $1',
             [campaignId]
         );
 
@@ -42,7 +59,7 @@ router.post('/applyCampaignAgency/:campaignId', authMiddleware, async (req, res)
 
 
         const existingApplication = await db.oneOrNone(
-            'SELECT id FROM campaign_applications WHERE campaign_id = $1 AND agency_id = $2',
+            'SELECT id FROM brand_campaign_application_from_agency WHERE campaign_id = $1 AND agency_id = $2',
             [campaignId, agencyID]
         );
 
@@ -54,11 +71,11 @@ router.post('/applyCampaignAgency/:campaignId', authMiddleware, async (req, res)
 
         // Create application
         const newApplication = await db.one(
-            `INSERT INTO campaign_applications 
+            `INSERT INTO brand_campaign_application_from_agency 
             (campaign_id, message, application_status, agency_id) 
             VALUES ($1, $2, 'applied', $3) 
-            RETURNING id, campaign_id, influencer_id, application_status, message, applied_at, agency_id`,
-            [campaignId,  message, agencyID]
+            RETURNING id, campaign_id, application_status, message, applied_at, agency_id`,
+            [campaignId, message, agencyID]
         );
 
         res.status(201).json({
@@ -81,7 +98,7 @@ router.post('/applyCampaignAgency/:campaignId', authMiddleware, async (req, res)
 
 
 // Search campaigns endpoint
-router.get('/campaignSearch', authMiddleware, searchValidation, async (req, res) => {   
+router.get('/agencyCampaignSearch', authMiddleware, searchValidation, async (req, res) => {   
     let paramCount = 2;
     try {
         const {
@@ -105,11 +122,11 @@ router.get('/campaignSearch', authMiddleware, searchValidation, async (req, res)
                 c.target_audience,
                 ba.brands_name as brand_name,
                 ca.application_status as application_status
-            FROM campaigns c
+            FROM brand_campaigns c
             JOIN brands_auth ba ON c.brand_id = ba.brands_id
-            LEFT JOIN campaign_applications ca ON c.id = ca.campaign_id 
+            LEFT JOIN brand_campaign_application_from_agency ca ON c.id = ca.campaign_id 
                 AND ca.agency_id = $1::uuid 
-            WHERE c.status = 'ACTIVE'
+            WHERE (c.status = 'ACTIVE')
         `;
 
         const params = [req.user.id]; // Add logged-in user's ID as first parameter
@@ -165,7 +182,7 @@ router.get('/campaignSearch', authMiddleware, searchValidation, async (req, res)
         // Get total count for pagination
         const countQuery = `
             SELECT COUNT(*) 
-            FROM campaigns c
+            FROM brand_campaigns c
             WHERE c.status = 'ACTIVE'
         `;
 
@@ -199,41 +216,82 @@ router.get('/campaignSearch', authMiddleware, searchValidation, async (req, res)
     }
 });
 
-// Get campaign by ID endpoint
-// router.get('searchByCId/:id', authMiddleware, async (req, res) => {
-//     try {
-//         const { id } = req.params;
-        
-//         const query = `
-//            SELECT 
-//                 c.*,
-//                 ba.brands_name as brand_name
-//             FROM campaigns c
-//             JOIN brands_auth ba ON c.brand_id = ba.brands_id
-//             WHERE c.id = $1 AND c.status = 'ACTIVE'
-//         `;
+router.post('/createAgencyCampaign', authMiddleware, upload.single('campaignMedia'), async function (req, res) {
+    try {
+        const {
+            campaignName,
+            campaignDescription,
+            campaignStartDate,
+            campaignEndDate,
+            campaignBudget,
+            targetAudience,
+            campaignStatus,
+        } = req.body;
 
-//         const result = await pool.query(query, [id]);
+        // Add your registration logic here
+        const requiredFields = [
+            'campaignName',
+            'campaignDescription',
+            'campaignStartDate',
+            'campaignEndDate',
+            'campaignBudget',
+            'targetAudience',
+            'campaignStatus',
+        ];
+        const formattedCampaignStartDate = new Date(campaignStartDate).toISOString().split('T')[0];
+        const formattedcampaignEndDate = new Date(campaignEndDate).toISOString().split('T')[0]; 
+        for (const field of requiredFields) {
+            if (!req.body[field]) {
+                return res.status(400).json({
+                    error: `${field.replace(/([A-Z])/g, ' $1').toLowerCase()} is required`
+                });
+            }
+        }
+        const agencyId = req.user.id;
+        if (!agencyId) {
+            return res.status(401).json({
+                error: 'Authentication failed: No user ID found'
+            });
+        }
 
-//         if (result.length === 0) {
-//             return res.status(404).json({
-//                 status: 'error',
-//                 message: 'Campaign not found'
-//             });
-//         }
+        let mediaBuffer = null;
+        if (req.file) {
+            mediaBuffer = req.file.buffer;
+        }
 
-//         res.json({
-//             status: 'success',
-//             data: result[0]
-//         });
+        const newCampaign = await db.one(
+            `INSERT INTO agency_campaigns (
+            name,
+            description,
+            start_date,
+            end_date,
+            status,
+            budget,
+            target_audience,
+            campaign_media,
+            agency_id
+        ) VALUES (
+            $1, $2, $3, $4, $5, $6, $7, $8, $9
+        ) RETURNING id, name, description, start_date, end_date, status, budget, target_audience, agency_id`,
+            [campaignName, campaignDescription, formattedCampaignStartDate, formattedcampaignEndDate, campaignStatus, campaignBudget, targetAudience, mediaBuffer, agencyId]
+        );
+        res.status(201).json(newCampaign);
+    } catch (error) {
+        console.error('Error:', error);
+        if (error.message.includes('Invalid file type')) {
+            return res.status(400).json({ error: error.message });
+        }
+        res.status(500).json({ error: 'Server error' });
+    }
+});
 
-//     } catch (error) {
-//         console.error('Get campaign error:', error);
-//         res.status(500).json({
-//             status: 'error',
-//             message: 'An error occurred while fetching the campaign'
-//         });
-//     }
-// });
+const validateCampaignHeader = (req, res, next) => {
+    const campaignId = req.headers['x-campaign-id'];
+    if (!campaignId) {
+        return res.status(401).json({ error: 'Campaign ID is required in header (x-campaign-id)' });
+    }
+    req.campaignId = campaignId;
+    next();
+};
 
 module.exports = router;
