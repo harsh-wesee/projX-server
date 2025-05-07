@@ -23,17 +23,27 @@ const initOptions = {
 const pgp = pgPromise(initOptions);
 
 // Connection configuration
-const connection = {
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5433,
-  database: process.env.DB_NAME || 'projx',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'Admin@123',
-  // Optional SSL configuration for production
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-};
+// const connection = {
+//   host: process.env.DB_HOST || 'localhost',
+//   port: process.env.DB_PORT || 5433,
+//   database: process.env.DB_NAME || 'projx',
+//   user: process.env.DB_USER || 'postgres',
+//   password: process.env.DB_PASSWORD || 'Admin@123',
+//   // Optional SSL configuration for production
+//   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+// };
 
-// Create and export the database connection
-const db = pgp(connection);
+// // Create and export the database connection
+// const db = pgp(connection);
+
+const awsConnection = {
+  host: process.env.AWS_DB_HOST,
+  port: process.env.AWS_DB_PORT || 5432,
+  database: process.env.AWS_DB_NAME || 'projx',
+  user: process.env.AWS_DB_USER || 'postgres',
+  password: process.env.AWS_DB_PASS,
+  ssl: { rejectUnauthorized: false }
+};
+const db = pgp(awsConnection);
 
 module.exports = db;
