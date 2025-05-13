@@ -10,34 +10,64 @@ router.get('/my-campaigns/applications', authMiddleware, async (req, res) => {
 
         // Fetch all campaigns with their applications
         const campaigns = await db.manyOrNone(
-            `SELECT 
-                c.id as campaign_id,
-                c.name as campaign_title,
-                c.status as campaign_status,
-                c.created_at as campaign_created_at,
-                COALESCE(
-                    json_agg(
-                        json_build_object(
-                            'application_id', ca.id,
-                            'message', ca.message,
-                            'status', ca.application_status,
-                            'applied_at', ca.applied_at,
-                            'influencer', json_build_object(
-                                'id', i.id,
-                                'name', i.full_name,
-                                'email', i.email,
-                                'social_media_handles', i.channel_links
+            `WITH all_applications AS (
+                    SELECT
+                        ca.id AS application_id,
+                        ca.message,
+                        ca.application_status AS status,
+                        ca.applied_at,
+                        ca.campaign_id,
+                        i.id AS influencer_id,
+                        i.agency_name AS name,
+                        i.email,
+                        'agency' AS source
+                    FROM brand_campaign_application_from_agency ca
+                    JOIN media_agencies i ON ca.agency_id = i.id
+
+                    UNION ALL
+
+                    SELECT
+                        bcac.id AS application_id,
+                        bcac.message,
+                        bcac.application_status AS status,
+                        bcac.applied_at,
+                        bcac.campaign_id,
+                        i.id AS influencer_id,
+                        i.full_name AS name,
+                        i.email,
+                        'creator' AS source
+                    FROM brand_campaign_application_from_creator bcac
+                    JOIN creators_auth i ON bcac.influencer_id = i.id
+                )
+
+                SELECT 
+                    c.id AS campaign_id,
+                    c.name AS campaign_title,
+                    c.status AS campaign_status,
+                    c.created_at AS campaign_created_at,
+                    COALESCE(
+                        json_agg(
+                            json_build_object(
+                                'application_id', a.application_id,
+                                'message', a.message,
+                                'status', a.status,
+                                'applied_at', a.applied_at,
+                                'source', a.source,
+                                'influencer', json_build_object(
+                                    'id', a.influencer_id,
+                                    'name', a.name,
+                                    'email', a.email
+                                )
                             )
-                        )
-                    ) FILTER (WHERE ca.id IS NOT NULL), 
-                    '[]'
-                ) as applications
-            FROM campaigns c
-            LEFT JOIN campaign_applications ca ON c.id = ca.campaign_id
-            LEFT JOIN creators_auth i ON ca.influencer_id = i.id
-            WHERE c.brand_id = $1
-            GROUP BY c.id
-            ORDER BY c.created_at DESC`,
+                        ) FILTER (WHERE a.application_id IS NOT NULL),
+                        '[]'
+                    ) AS applications
+                FROM brand_campaigns c
+                LEFT JOIN all_applications a ON c.id = a.campaign_id
+                WHERE c.brand_id = $1
+                GROUP BY c.id
+                ORDER BY c.created_at DESC;
+            `,
             [brandId]
         );
 
