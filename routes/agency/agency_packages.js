@@ -111,7 +111,7 @@ router.put('/updatePackage/:packageId', authMiddleware, async (req, res) => {
         const { price, features, delivery_time_days } = req.body;
 
         const existingPackage = await db.oneOrNone(`
-            SELECT id FROM media_packages 
+            SELECT id FROM agency_packages 
             WHERE id = $1 AND agency_id = $2
         `, [packageId, agencyId]);
 
@@ -132,7 +132,7 @@ router.put('/updatePackage/:packageId', authMiddleware, async (req, res) => {
         }
 
         const updatedPackage = await db.one(`
-            UPDATE media_packages 
+            UPDATE agency_packages 
             SET 
                 price = COALESCE($1::numeric, price),
                 features = $2,

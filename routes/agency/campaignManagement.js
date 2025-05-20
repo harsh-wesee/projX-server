@@ -285,6 +285,51 @@ router.post('/createAgencyCampaign', authMiddleware, upload.single('campaignMedi
     }
 });
 
+
+router.get('/my-campaigns/applications', authMiddleware, async (req, res) => {
+    try {
+        const agencyId = req.user.id;
+
+        // Fetch all campaigns with their applications
+        const campaigns = await db.manyOrNone(
+            `SELECT
+                        bcac.id AS application_id,
+                        bcac.message,
+                        bcac.application_status AS status,
+                        bcac.applied_at,
+                        bcac.campaign_id,
+                        i.id AS influencer_id,
+                        i.full_name AS name,
+                        i.email,
+                        i.channel_links AS channel_links,
+                        'creator' AS source
+                    FROM agency_campaign_application_from_creator bcac
+                    JOIN agency_campaigns c ON bcac.campaign_id = c.id
+                    JOIN creators_auth i ON bcac.influencer_id = i.id
+
+                          
+                ORDER BY c.created_at DESC;
+            `,
+            [agencyId]
+        );
+
+        res.status(200).json({
+            message: 'Campaigns and applications retrieved successfully',
+            data: campaigns.map(campaign => ({
+                ...campaign,
+                applications: campaign.applications === '[]' ? [] : campaign.applications
+            }))
+        });
+
+    } catch (error) {
+        console.error('Error fetching campaigns and applications:', error);
+        res.status(500).json({
+            error: 'Internal server error',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
+
 const validateCampaignHeader = (req, res, next) => {
     const campaignId = req.headers['x-campaign-id'];
     if (!campaignId) {
@@ -293,5 +338,8 @@ const validateCampaignHeader = (req, res, next) => {
     req.campaignId = campaignId;
     next();
 };
+
+
+
 
 module.exports = router;
