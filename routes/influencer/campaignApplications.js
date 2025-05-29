@@ -90,12 +90,6 @@ router.post('/apply/:campaignId', authMiddleware, async (req, res) => {
             }
         }
 
-
-        // console.log("Existing application in agency", existingApplicationInAgencyCampaign)
-        // console.log("Existing application in brand", existingApplicationInBrandCampaign)
-
-       
-
     } catch (error) {
         console.error('Error submitting application:', error);
         res.status(500).json({

@@ -16,15 +16,11 @@ const enlistInfluencersPackage = require('./routes/brands/enlistCampaignApplicat
 const agencyDiscoverInfluencers = require('./routes/agency/discoverInfluencers')
 const agencyCampaignManagement = require('./routes/agency/campaignManagement')
 const agencyPackagesManagement = require('./routes/agency/agency_packages')
-
-
-
-
+const packagesRoutes = require('./routes/packages')
 
 
 const app = express();
 const PORT = process.env.PORT || 5001;
-
 
 
 app.use(cors());
@@ -45,7 +41,7 @@ app.use('/api/v1/brands/enlistCampaignApplication', enlistInfluencersPackage);
 app.use('/api/v1/agency/discover', agencyDiscoverInfluencers);
 app.use('/api/v1/agency/campaignManagement', agencyCampaignManagement);
 app.use('/api/v1/agency/packageManagement', agencyPackagesManagement);
-
+app.use('/api/v1/packages', packagesRoutes);
 
 
 // Test database connection before starting the server
