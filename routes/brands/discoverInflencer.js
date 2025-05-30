@@ -46,7 +46,8 @@ router.get('/enlistInfluencers', authMiddleware, async (req, res) => {
       'package_type', ip.package_type,
       'price', ip.price,
       'features', ip.features,
-      'delivery_time_days', ip.delivery_time_days
+      'delivery_time_days', ip.delivery_time_days,
+      'package_id', ip.id
     )
   ) FILTER (WHERE ip.package_type IS NOT NULL 
             AND (ip.target_brand IS NULL 
