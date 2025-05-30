@@ -38,15 +38,15 @@ router.post('/order',
                 
                 // First check influencer_packages
                 package = await db.oneOrNone(
-                    'SELECT *, $1 as package_type FROM influencer_packages WHERE creator_id = $1',
-                    [packageId, 'influencer']
+                    'SELECT *, $1 as package_type FROM influencer_packages WHERE id = $1',
+                    [packageId]
                 );
                 
                 // If not found in influencer_packages, check agency_packages
                 if (!package) {
                     package = await db.oneOrNone(
-                        'SELECT *, $1 as package_type FROM agency_packages WHERE agency_id = $1',
-                        [agencyId, 'agency']
+                        'SELECT *, $1 as package_type FROM agency_packages WHERE id = $1',
+                        [packageId]
                     );
                 }
 
