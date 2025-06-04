@@ -17,6 +17,7 @@ const agencyDiscoverInfluencers = require('./routes/agency/discoverInfluencers')
 const agencyCampaignManagement = require('./routes/agency/campaignManagement')
 const agencyPackagesManagement = require('./routes/agency/agency_packages')
 const packagesRoutes = require('./routes/packages')
+const discoverAgencies = require('./routes/brands/discoverAgencies');
 
 
 const app = express();
@@ -42,6 +43,7 @@ app.use('/api/v1/agency/discover', agencyDiscoverInfluencers);
 app.use('/api/v1/agency/campaignManagement', agencyCampaignManagement);
 app.use('/api/v1/agency/packageManagement', agencyPackagesManagement);
 app.use('/api/v1/packages', packagesRoutes);
+app.use('/api/v1/brands/discover', discoverAgencies);
 
 
 // Test database connection before starting the server
